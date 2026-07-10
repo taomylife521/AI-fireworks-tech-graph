@@ -26,7 +26,7 @@
 
 ## 效果展示
 
-> 所有示例图均以 1920px 宽度（2× 视网膜分辨率）通过 `cairosvg` 导出为 **PNG 格式**。技术图应选 PNG（无损），JPG 有损压缩会在文字和线条边缘产生噪点。
+> 所有示例图均由回归流水线以 1920px 宽度（2× 视网膜分辨率）导出。流水线优先使用 `cairosvg`，不可用时回退到 `rsvg-convert`；PNG 能无损保留技术图中的文字和线条。
 
 ### 风格 1 — 扁平图标风（默认）
 *Mem0 记忆架构图 — 白底，语义箭头，分层记忆系统*
@@ -57,14 +57,14 @@
 ![风格 7 — OpenAI 官方风格](assets/samples/sample-style7-openai.png)
 
 ### 风格 8 — 暗黑奢华风 *(AI 手绘)*
-*Sopify 自适应工作流引擎 — 深黑背景，香槟金点缀，衬线体标题，六色桶色轮*
+*Agent Runtime Architecture — 控制平面、执行与状态分层，香槟金结构线和语义色桶*
 ![风格 8 — 暗黑奢华风](assets/samples/sample-style8-dark-luxury.png)
 
 ---
 
 ## 稳定输出提示词样例
 
-下面这 7 组提示词都更贴近当前仓库里回归测试最稳定的输出方式：
+下面这 8 组提示词都更贴近当前仓库里回归测试最稳定的输出方式：
 
 ### 风格 1 — 扁平图标风
 ```text
@@ -124,7 +124,9 @@
 > 风格 8 不是模板驱动风格。AI 读取 `references/style-8-dark-luxury.md` 手工绘制 SVG。
 
 ```text
-画一张 style 8（Dark Luxury）的系统架构图。
+画一张 style 8（Dark Luxury）的 Agent Runtime Architecture 图。
+分成 Control Plane、Execution and State 两个区域。
+包含 Client、Gateway、Agent Runtime、Vector Memory、Tool Runtime、Trace + Eval。
 背景使用深黑色（#0a0a0a），标题和区块标签用香槟金（#d4a574），
 节点颜色分布在完整色轮上：翠绿、深紫、天空蓝、玫瑰红、琥珀黄、冷灰。
 标题和区块标签（≥11px）使用 Georgia 衬线体；节点文字和箭头标签全用无衬线体。
@@ -140,6 +142,8 @@
 - **AI/Agent 领域内建知识** — RAG、Agentic Search、Mem0、Multi-Agent、Tool Call 等常见 Pattern 开箱即用
 - **语义形状词汇表** — LLM = 双边框圆角矩形，Agent = 六边形，Vector Store = 带内环圆柱
 - **语义箭头系统** — 颜色 + 虚线样式编码含义（写入/读取/异步/循环）
+- **结构化 SVG 校验** — XML 解析、`marker-start/mid/end` 完整性，以及 `M/L/H/V/Q/C/S/T` 路径的箭头穿框检测
+- **视觉复核门禁** — 交付前回读 PNG，检查裁切、重叠、标签位置和走线回归
 - **产品图标库** — 40+ 产品品牌色：OpenAI、Anthropic、Pinecone、Weaviate、Kafka、PostgreSQL……
 - **泳道分组** — 自动为复杂架构添加层级标签
 - **SVG + PNG 双输出** — SVG 可编辑，1920px PNG 可直接嵌入文章
@@ -341,7 +345,7 @@ generate diagram / draw diagram / create chart / visualize
 
 ---
 
-## 7 种风格
+## 8 种风格
 
 | # | 名称 | 背景色 | 字体 | 适用场景 |
 |---|------|--------|------|----------|
@@ -352,9 +356,10 @@ generate diagram / draw diagram / create chart / visualize
 | 5 | **玻璃态卡片风** | `#0d1117` 渐变 | Inter | 产品官网、演讲 Keynote |
 | 6 | **Claude 官方风格** | `#f8f6f3` | system-ui | Anthropic 风格图表，温暖专业美学 |
 | 7 | **OpenAI 官方风格** | `#ffffff` | system-ui | OpenAI 风格图表，简洁现代设计 |
+| 8 | **暗黑奢华风** *(AI 手绘)* | `#0a0a0a` | Georgia + system-ui | 高级文档、README Hero、技术演讲 |
 
-每种风格在 `references/` 目录下都有专属参考文件，包含精确的颜色 Token、SVG 模板和使用规范。
-生成器现在还会直接消费风格相关结构字段，例如 `containers`、语义化 `nodes[].kind`、`arrows[].flow` 以及显式端口锚点，以便更稳定地逼近样图级布局质量。
+每种风格在 `references/` 目录下都有专属参考文件，包含精确的颜色 Token 和 SVG Pattern。风格 1-7 由生成器驱动；风格 8 使用 AI 手绘构图和静态回归 fixture。
+对于风格 1-7，生成器会直接消费 `containers`、语义化 `nodes[].kind`、`arrows[].flow` 以及显式端口锚点，以便稳定复现样图级布局质量。
 
 几个很有用的增强字段：
 - `style_overrides`：在不复制整套 style 的前提下微调标题对齐或配色 token
@@ -385,6 +390,7 @@ generate diagram / draw diagram / create chart / visualize
 **品牌特定：**
 - **Anthropic/Claude 项目**：风格 6（Claude 官方风格）— 温暖奶油色背景，品牌感强且克制
 - **OpenAI 项目**：风格 7（OpenAI 官方风格）— 简洁白色，OpenAI 配色
+- **高级编辑感技术图**：风格 8（暗黑奢华风）— 深黑画布、香槟金层级和语义色桶
 
 ---
 
@@ -488,19 +494,24 @@ fireworks-tech-graph/
 │   ├── style-4-notion-clean.md   # 极简风格 — 白底，单色箭头
 │   ├── style-5-glassmorphism.md  # 玻璃态风格 — 深色渐变，磨砂卡片
 │   ├── style-6-claude-official.md # Claude 官方风格 — 温暖奶油色，Anthropic 品牌
-│   ├── style-7-openai.md        # OpenAI 官方风格 — 简洁白色，OpenAI 品牌配色
+│   ├── style-7-openai.md         # OpenAI 官方风格 — 简洁白色，OpenAI 品牌配色
+│   ├── style-8-dark-luxury.md    # 深黑画布、香槟金、AI 手绘布局
 │   └── icons.md                  # 40+ 产品图标 + 语义形状模板
 ├── agents/
 │   └── openai.yaml              # 兼容运行时使用的 Agent 元数据
 ├── fixtures/
 │   ├── mem0-style1.json         # Style 1 回归样例
 │   ├── tool-call-style2.json    # Style 2 回归样例
+│   ├── dark-luxury-style8.svg   # Style 8 静态回归样例
 │   └── ...                      # 各风格样图级 fixture
 ├── scripts/
 │   ├── generate-diagram.sh       # SVG 校验与 PNG 导出
 │   ├── generate-from-template.py # 基于模板生成 SVG 起始文件
-│   ├── validate-svg.sh           # SVG 语法校验
+│   ├── validate-svg.sh           # 校验与渲染检查入口
+│   ├── validate_svg.py           # XML、marker、transform 与路径碰撞检测
 │   └── test-all-styles.sh        # 批量测试所有风格
+├── tests/
+│   └── test_validate_svg.py      # Validator 回归测试
 ├── assets/
 │   └── samples/                  # 示例图 PNG
 ├── templates/

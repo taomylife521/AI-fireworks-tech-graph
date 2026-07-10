@@ -1,7 +1,7 @@
 {
   "name": "@yizhiyanhua-ai/fireworks-tech-graph",
   "version": "1.0.4",
-  "description": "Generate production-quality SVG technical diagrams (architecture, flowchart, UML, ER, sequence, etc.) with 7 built-in styles. Export as SVG+PNG via cairosvg (recommended), with rsvg-convert and puppeteer as alternatives.",
+  "description": "Generate production-quality SVG technical diagrams (architecture, flowchart, UML, ER, sequence, etc.) with 8 built-in styles. Export as SVG+PNG via cairosvg (recommended), with rsvg-convert and puppeteer as alternatives.",
   "main": "SKILL.md",
   "keywords": [
     "claude-code",
@@ -32,9 +32,12 @@
     "LICENSE",
     "references/",
     "scripts/",
+    "tests/",
     "fixtures/",
     "templates/",
-    "assets/"
+    "assets/",
+    "!**/__pycache__/**",
+    "!**/*.pyc"
   ],
   "engines": {
     "node": ">=14.0.0"

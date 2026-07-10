@@ -24,8 +24,8 @@ echo ""
 mkdir -p "$TEST_DIR"
 
 # Test configuration
-STYLES=(1 2 3 4 5 6 7)
-STYLE_NAMES=("Flat Icon" "Dark Terminal" "Blueprint" "Notion Clean" "Glassmorphism" "Claude Official" "OpenAI Official")
+STYLES=(1 2 3 4 5 6 7 8)
+STYLE_NAMES=("Flat Icon" "Dark Terminal" "Blueprint" "Notion Clean" "Glassmorphism" "Claude Official" "OpenAI Official" "Dark Luxury")
 
 # Summary counters
 TOTAL=0
@@ -61,6 +61,7 @@ for i in "${!STYLES[@]}"; do
 
     FIXTURE_FILES=$(find "$FIXTURES_DIR" -maxdepth 1 -type f -name "*.json" | sort || true)
     MATCHED_FIXTURES=()
+    MATCHED_COUNT=0
     for FIXTURE in $FIXTURE_FILES; do
         FIXTURE_STYLE=$(python3 - "$FIXTURE" <<'PY'
 import json
@@ -72,16 +73,19 @@ PY
 )
         if [ "$FIXTURE_STYLE" = "$STYLE" ]; then
             MATCHED_FIXTURES+=("$FIXTURE")
+            MATCHED_COUNT=$((MATCHED_COUNT + 1))
         fi
     done
 
-    if [ "${#MATCHED_FIXTURES[@]}" -eq 0 ]; then
+    STATIC_FIXTURE_FILES=$(find "$FIXTURES_DIR" -maxdepth 1 -type f -name "*-style${STYLE}.svg" | sort || true)
+    if [ "$MATCHED_COUNT" -eq 0 ] && [ -z "$STATIC_FIXTURE_FILES" ]; then
         echo -e "${YELLOW}⚠ No regression fixtures found for style $STYLE${NC}"
         continue
     fi
 
     # Render, validate, and export each fixture
-    for FIXTURE in "${MATCHED_FIXTURES[@]}"; do
+    if [ "$MATCHED_COUNT" -gt 0 ]; then
+      for FIXTURE in "${MATCHED_FIXTURES[@]}"; do
         BASENAME=$(basename "$FIXTURE" .json)
         SVG_FILE="${TEST_DIR}/${BASENAME}_${TIMESTAMP}.svg"
         PNG_FILE="${TEST_DIR}/${BASENAME}_${TIMESTAMP}.png"
@@ -121,6 +125,40 @@ PY
             if [ -f "$SVG_FILE" ]; then
                 "${SKILL_DIR}/scripts/validate-svg.sh" "$SVG_FILE" 2>&1 | grep -E "✗|Error" | sed 's/^/    /' || true
             fi
+        fi
+      done
+    fi
+
+    # AI-authored styles use static SVG fixtures because the template generator
+    # intentionally does not own their visual composition.
+    for FIXTURE in $STATIC_FIXTURE_FILES; do
+        BASENAME=$(basename "$FIXTURE" .svg)
+        SVG_FILE="${TEST_DIR}/${BASENAME}_${TIMESTAMP}.svg"
+        PNG_FILE="${TEST_DIR}/${BASENAME}_${TIMESTAMP}.png"
+        echo -n "  Validating $BASENAME... "
+        TOTAL=$((TOTAL + 1))
+        cp "$FIXTURE" "$SVG_FILE"
+
+        if "${SKILL_DIR}/scripts/validate-svg.sh" "$SVG_FILE" > /dev/null 2>&1; then
+            PNG_OK=false
+            if python3 -c "import cairosvg" 2>/dev/null \
+                && python3 -c "import cairosvg; cairosvg.svg2png(url='${SVG_FILE}', write_to='${PNG_FILE}', scale=2)" 2>/dev/null; then
+                PNG_OK=true
+            elif command -v rsvg-convert &> /dev/null \
+                && rsvg-convert -w 1920 "$SVG_FILE" -o "$PNG_FILE" 2>/dev/null; then
+                PNG_OK=true
+            fi
+            if [ "$PNG_OK" = true ]; then
+                PNG_SIZE=$(du -h "$PNG_FILE" | cut -f1)
+                echo -e "${GREEN}✓ Pass${NC} (${PNG_SIZE})"
+            else
+                echo -e "${GREEN}✓ Pass${NC}"
+            fi
+            PASSED=$((PASSED + 1))
+        else
+            echo -e "${RED}✗ Fail${NC}"
+            FAILED=$((FAILED + 1))
+            "${SKILL_DIR}/scripts/validate-svg.sh" "$SVG_FILE" 2>&1 | grep -E "✗|Error|intersects|missing marker" | sed 's/^/    /' || true
         fi
     done
 done

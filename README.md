@@ -40,7 +40,7 @@ If you are building agent infrastructure, AI IDEs, internal copilots, developer 
 
 ## Showcase
 
-> All samples exported at 1920px width (2× retina) via `cairosvg`. PNG is lossless and the right choice for technical diagrams — sharp edges, no JPEG compression artifacts on text/lines.
+> All samples are exported at 1920px width (2× retina) by the regression pipeline. It prefers `cairosvg` and falls back to `rsvg-convert`. PNG keeps technical text and line work lossless.
 
 ### Style 1 — Flat Icon (default)
 *Mem0 Memory Architecture — white background, semantic arrows, layered memory system*
@@ -71,7 +71,7 @@ If you are building agent infrastructure, AI IDEs, internal copilots, developer 
 ![Style 7 — OpenAI Official](assets/samples/sample-style7-openai.png)
 
 ### Style 8 — Dark Luxury *(AI-authored)*
-*Sopify Adaptive Workflow Engine — deep black background, champagne gold accents, serif titles, six-bucket color wheel*
+*Agent Runtime Architecture — control plane, execution and state layers, champagne-gold structure, semantic color buckets*
 ![Style 8 — Dark Luxury](assets/samples/sample-style8-dark-luxury.png)
 
 ---
@@ -138,7 +138,9 @@ Keep the look minimal, white, precise, and modern with clean green-accented arro
 > Style 8 is not a template-driven style. The AI reads `references/style-8-dark-luxury.md` and hand-crafts the SVG directly.
 
 ```text
-Draw a system architecture diagram in style 8 (Dark Luxury).
+Draw an Agent Runtime Architecture diagram in style 8 (Dark Luxury).
+Use two sections: Control Plane and Execution and State.
+Include Client, Gateway, Agent Runtime, Vector Memory, Tool Runtime, and Trace + Eval.
 Use a deep black background (#0a0a0a), champagne gold (#d4a574) for titles and cluster labels,
 and spread node colors across the full color wheel: emerald, violet, sky blue, rose, amber, cool-gray.
 Apply Georgia serif only for the main title and section labels (≥11px); use sans-serif for all node text and arrow labels.
@@ -154,6 +156,8 @@ Apply Georgia serif only for the main title and section labels (≥11px); use sa
 - **AI/Agent domain patterns** — RAG, Agentic Search, Mem0, Multi-Agent, Tool Call, and more built-in
 - **Semantic shape vocabulary** — LLM = double-border rect, Agent = hexagon, Vector Store = ringed cylinder
 - **Semantic arrow system** — color + dash pattern encode meaning (write vs read vs async vs loop)
+- **Structured SVG validation** — XML parsing, `marker-start/mid/end` integrity, and arrow-component collision checks for `M/L/H/V/Q/C/S/T` paths
+- **Visual review gate** — exported PNGs are inspected for clipping, overlap, label placement, and routing regressions before delivery
 - **Product icons** — 40+ products with brand colors: OpenAI, Anthropic, Pinecone, Weaviate, Kafka, PostgreSQL…
 - **Swim lane grouping** — automatic layer labeling for complex architectures
 - **SVG + PNG output** — SVG for editing, 1920px PNG for embedding
@@ -232,7 +236,7 @@ rsvg-convert --version
 |--|---------|---------|--------------------------|
 | Natural language input | ✗ | ✗ | ✅ |
 | AI/Agent domain patterns | ✗ | ✗ | ✅ |
-| Multiple visual styles | ✗ | manual | ✅ 5 built-in |
+| Multiple visual styles | ✗ | manual | ✅ 8 built-in |
 | High-res PNG export | ✗ | manual | ✅ auto 1920px |
 | Semantic arrow colors | ✗ | manual | ✅ auto |
 | No online tool needed | ✅ | ✗ | ✅ |
@@ -379,9 +383,10 @@ Draw an AI Agent capability map: Perception / Memory / Reasoning / Action / Lear
 | 5 | **Glassmorphism** | `#0d1117` gradient | Inter | Product sites, keynotes |
 | 6 | **Claude Official** | `#f8f6f3` | system-ui | Anthropic-style diagrams, warm aesthetic |
 | 7 | **OpenAI Official** | `#ffffff` | system-ui | OpenAI-style diagrams, clean modern look |
+| 8 | **Dark Luxury** *(AI-authored)* | `#0a0a0a` | Georgia + system-ui | Premium docs, README heroes, conference slides |
 
-Each style has a dedicated reference file in `references/` with exact color tokens, SVG patterns, and templates.
-The generator also consumes style-aware structure fields such as `containers`, semantic `nodes[].kind`, `arrows[].flow`, and explicit port anchors so sample-grade layouts can be reproduced more consistently.
+Each style has a dedicated reference file in `references/` with exact color tokens and SVG patterns. Styles 1-7 are generator-backed; Style 8 uses AI-authored composition plus a static regression fixture.
+For Styles 1-7, the generator consumes structure fields such as `containers`, semantic `nodes[].kind`, `arrows[].flow`, and explicit port anchors so sample-grade layouts can be reproduced consistently.
 
 Useful high-leverage fields for style-specific polish:
 - `style_overrides` to nudge title alignment or palette tokens without forking a full style
@@ -412,6 +417,7 @@ Useful high-leverage fields for style-specific polish:
 **Brand-Specific:**
 - **Anthropic/Claude projects**: Style 6 (Claude Official) — warm cream background, brand colors
 - **OpenAI projects**: Style 7 (OpenAI Official) — clean white, OpenAI palette
+- **Premium editorial diagrams**: Style 8 (Dark Luxury) — deep black canvas, champagne-gold hierarchy, semantic color buckets
 
 ---
 
@@ -515,19 +521,24 @@ fireworks-tech-graph/
 │   ├── style-4-notion-clean.md   # Minimal, white, single arrow color
 │   ├── style-5-glassmorphism.md  # Dark gradient, frosted glass cards
 │   ├── style-6-claude-official.md # Warm cream background, Anthropic brand
-│   ├── style-7-openai.md      # Clean white, OpenAI brand palette
+│   ├── style-7-openai.md         # Clean white, OpenAI brand palette
+│   ├── style-8-dark-luxury.md    # Deep black, champagne gold, AI-authored layout
 │   └── icons.md                  # 40+ product icons + semantic shapes
 ├── agents/
 │   └── openai.yaml              # Agent metadata for compatible runtimes
 ├── fixtures/
 │   ├── mem0-style1.json         # Style 1 regression fixture
 │   ├── tool-call-style2.json    # Style 2 regression fixture
+│   ├── dark-luxury-style8.svg   # Static Style 8 regression fixture
 │   └── ...                      # Additional sample-grade fixtures per style
 ├── scripts/
 │   ├── generate-diagram.sh       # Validate SVG + export PNG
 │   ├── generate-from-template.py # Create starter SVGs from templates
-│   ├── validate-svg.sh           # Validate SVG syntax
+│   ├── validate-svg.sh           # Validation and render-check entrypoint
+│   ├── validate_svg.py           # XML, marker, transform, and path collision checks
 │   └── test-all-styles.sh        # Batch test all styles
+├── tests/
+│   └── test_validate_svg.py      # Validator regression tests
 ├── assets/
 │   └── samples/                  # Showcase diagram PNGs
 ├── templates/

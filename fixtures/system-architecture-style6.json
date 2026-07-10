@@ -26,7 +26,7 @@
   ],
   "arrows": [
     { "source": "entry", "target": "gateway", "source_port": "right", "target_port": "left", "flow": "read" },
-    { "source": "gateway", "target": "planner", "source_port": "bottom", "target_port": "top", "flow": "control", "label": "decompose", "route_points": [[370,224], [370,336], [332,336]] },
+    { "source": "gateway", "target": "planner", "source_port": "bottom", "target_port": "top", "flow": "control", "label": "decompose", "route_points": [[438,224], [438,282], [238,282]] },
     { "source": "gateway", "target": "runtime", "source_port": "bottom", "target_port": "top", "flow": "read", "route_points": [[438,224], [552,224], [552,298]] },
     { "source": "runtime", "target": "guard", "source_port": "right", "target_port": "left", "flow": "data" },
     { "source": "runtime", "target": "memory", "source_port": "bottom", "target_port": "top", "flow": "write", "dashed": true, "route_points": [[606,432], [218,432], [218,494]] },

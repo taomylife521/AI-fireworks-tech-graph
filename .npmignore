@@ -2,6 +2,8 @@
 node_modules/
 test-output/
 scripts/__pycache__/
+**/__pycache__/**
+**/*.pyc
 *.py[cod]
 *.backup
 *.bak
