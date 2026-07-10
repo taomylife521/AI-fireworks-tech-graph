@@ -165,6 +165,42 @@ Apply Georgia serif only for the main title and section labels (≥11px); use sa
 
 ---
 
+## Loop Engineering
+
+The first render is treated as a candidate, not an automatic final result. `fireworks-tech-graph` uses an agent-driven, bounded validation feedback loop to move each diagram toward a verified deliverable:
+
+```text
+Prompt
+  → Diagram Contract
+  → Semantic IR
+  → Style Spec
+  → Route Planner
+  → SVG Build
+  → Structural Validation
+  → PNG Visual Readback
+  → Targeted Revision
+  → Verified SVG + PNG
+```
+
+The loop follows five design principles:
+
+1. **Evaluate, don't assert** — completion is backed by validator and render evidence, not by the model saying the diagram looks correct.
+2. **Deterministic checks first** — XML structure, marker integrity, path geometry, arrow-component collisions, and renderability are checked before visual judgment.
+3. **Perceptual validation second** — the exported PNG is read back to inspect clipping, label collisions, hierarchy, whitespace, and routing quality that syntax checks cannot see.
+4. **Targeted correction** — each pass changes only the diagnosed labels, coordinates, corridors, or spacing, then reruns validation and rendering.
+5. **Bounded convergence** — visual review allows at most two focused correction passes by default, preventing an unbounded self-editing loop.
+
+The loop is observable in the final status:
+
+```text
+validation: passed
+visual_review: passed
+```
+
+If the runtime cannot read images, the skill reports `visual_review: skipped (image reader unavailable)` explicitly. The workflow remains bounded and auditable; it does not claim visual verification without image evidence.
+
+---
+
 ## Installation
 
 > [!WARNING]

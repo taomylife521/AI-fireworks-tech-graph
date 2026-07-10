@@ -151,6 +151,42 @@
 
 ---
 
+## Loop Engineering 设计理念
+
+首轮渲染会被视为候选结果，交付前还要经过一条由 Agent 驱动、轮次受限的 validation feedback loop：
+
+```text
+Prompt
+  → Diagram Contract
+  → Semantic IR
+  → Style Spec
+  → Route Planner
+  → SVG Build
+  → Structural Validation
+  → PNG Visual Readback
+  → Targeted Revision
+  → Verified SVG + PNG
+```
+
+这条闭环遵循五项原则：
+
+1. **Evaluate, don't assert** — 完成状态必须有 validator 和实际渲染证据，不能只依赖模型对结果的主观判断。
+2. **先确定性校验** — 依次检查 XML 结构、marker 引用、路径几何、箭头穿框和渲染可用性，再进入视觉判断。
+3. **再做感知验证** — 回读导出的 PNG，检查语法工具无法识别的裁切、标签碰撞、视觉层级、留白和走线质量。
+4. **定向修正** — 每轮只修改已诊断的标签、坐标、corridor 或间距，随后重新运行 validator 和 render check。
+5. **有界收敛** — 默认最多执行两轮 focused correction，避免进入无上限的自我修改循环。
+
+最终状态会明确报告闭环结果：
+
+```text
+validation: passed
+visual_review: passed
+```
+
+当运行环境无法读取图片时，Skill 会明确报告 `visual_review: skipped (image reader unavailable)`。整个流程保持可观察、可审计，也不会在缺少图片证据时宣称已经完成视觉验证。
+
+---
+
 ## 安装
 
 > [!WARNING]
