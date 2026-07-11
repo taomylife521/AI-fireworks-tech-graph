@@ -5,7 +5,8 @@
 > **Stop drawing diagrams by hand.** Describe your system in English or Chinese — get publication-ready SVG + PNG technical diagrams in seconds.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/code)
+[![Codex Skill](https://img.shields.io/badge/Codex-Skill-10a37f)](https://learn.chatgpt.com/docs/build-skills)
+[![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-d97757)](https://code.claude.com/docs/en/skills)
 [![8 Visual Styles](https://img.shields.io/badge/Styles-8-purple)]()
 [![14 Diagram Types](https://img.shields.io/badge/Diagram%20Types-14-green)]()
 [![UML Support](https://img.shields.io/badge/UML-Full%20Support-orange)]()
@@ -14,7 +15,7 @@
 
 ## Overview
 
-`fireworks-tech-graph` turns natural language descriptions into polished SVG diagrams, then exports them as high-resolution PNG via `cairosvg` (recommended), with `rsvg-convert` and `puppeteer` available as alternatives. It ships with **7 template styles** and **1 AI-authored style (Dark Luxury)** and deep knowledge of AI/Agent domain patterns (RAG, Agentic Search, Mem0, Multi-Agent, Tool Call flows), plus full support for all 14 UML diagram types.
+`fireworks-tech-graph` is one Agent Skill that works unchanged in **Codex and Claude Code**. It turns natural language descriptions into polished SVG diagrams, then exports them as high-resolution PNG via `cairosvg` (recommended), with `rsvg-convert` and `puppeteer` available as alternatives. It ships with **7 template styles** and **1 AI-authored style (Dark Luxury)** and deep knowledge of AI/Agent domain patterns (RAG, Agentic Search, Mem0, Multi-Agent, Tool Call flows), plus full support for all 14 UML diagram types.
 
 ```
 User: "Generate a Mem0 memory architecture diagram, dark style"
@@ -204,65 +205,91 @@ If the runtime cannot read images, the skill reports `visual_review: skipped (im
 ## Installation
 
 > [!WARNING]
-> `npx skills add` (v1.5.15) only copies `SKILL.md` — subdirectories like `references/`, `scripts/`, `templates/` are silently dropped. **Use `git clone` for a complete installation.**
+> Some versions of `npx skills add` only copy `SKILL.md` and omit bundled directories such as `references/`, `scripts/`, and `templates/`. **Use `git clone` for a complete installation.**
+
+The commands below are for a fresh install. If the destination already exists but is not a Git checkout, move it aside first, then run the matching clone command:
 
 ```bash
+mv ~/.agents/skills/fireworks-tech-graph ~/.agents/skills/fireworks-tech-graph.backup-$(date +%Y%m%d-%H%M%S)
+# or
+mv ~/.claude/skills/fireworks-tech-graph ~/.claude/skills/fireworks-tech-graph.backup-$(date +%Y%m%d-%H%M%S)
+```
+
+### Codex
+
+```bash
+mkdir -p ~/.agents/skills
+git clone https://github.com/yizhiyanhua-ai/fireworks-tech-graph.git ~/.agents/skills/fireworks-tech-graph
+```
+
+Codex discovers personal skills from `~/.agents/skills` and reads the optional `agents/openai.yaml` metadata included in this repository.
+
+### Claude Code
+
+```bash
+mkdir -p ~/.claude/skills
 git clone https://github.com/yizhiyanhua-ai/fireworks-tech-graph.git ~/.claude/skills/fireworks-tech-graph
 ```
 
-Or use `npx skills add` (subdirectories may be missing):
+Claude Code discovers personal skills from `~/.claude/skills` and ignores the Codex-only UI metadata.
+
+### Codex + Claude Code on the same machine
+
+For a fresh install with Claude Code 2.1.203 or newer, keep one checkout and link both discovery paths to it. Move any existing destinations aside before creating the links.
 
 ```bash
-npx skills add yizhiyanhua-ai/fireworks-tech-graph
+mkdir -p ~/.local/share/agent-skills ~/.agents/skills ~/.claude/skills
+git clone https://github.com/yizhiyanhua-ai/fireworks-tech-graph.git ~/.local/share/agent-skills/fireworks-tech-graph
+ln -s ~/.local/share/agent-skills/fireworks-tech-graph ~/.agents/skills/fireworks-tech-graph
+ln -s ~/.local/share/agent-skills/fireworks-tech-graph ~/.claude/skills/fireworks-tech-graph
 ```
 
-This skill is installed from the GitHub repository. The npm package page is the public package/distribution page:
+This keeps `SKILL.md`, references, scripts, templates, and future updates identical in both agents. The npm package page remains available for package metadata and distribution:
 
 ```text
 https://www.npmjs.com/package/@yizhiyanhua-ai/fireworks-tech-graph
 ```
 
-Do not use the npm package name with `skills add`, because the CLI resolves install sources as GitHub/local paths.
-
 ## Update
 
-```bash
-cd ~/.claude/skills/fireworks-tech-graph && git pull
-```
-
-Or re-run the CLI installer:
+Update whichever checkout you installed:
 
 ```bash
-npx skills add yizhiyanhua-ai/fireworks-tech-graph --force -g -y
+git -C ~/.agents/skills/fireworks-tech-graph pull
+# or
+git -C ~/.claude/skills/fireworks-tech-graph pull
+# or, for the shared checkout
+git -C ~/.local/share/agent-skills/fireworks-tech-graph pull
 ```
+
+After the first install, restart Codex and Claude Code so both discover the skill. Later `SKILL.md` edits are detected automatically; restart the runtime after changing bundled scripts or references if the update is not visible.
+
+The shell commands above target macOS, Linux, WSL, and Git Bash. On native Windows, use the equivalent `%USERPROFILE%\.agents\skills` and `%USERPROFILE%\.claude\skills` paths.
 
 ---
 
 ## Requirements
 
-Pick **one** PNG renderer (cairosvg recommended):
+The bundled validation/export scripts require **cairosvg** (recommended) or `rsvg-convert`. Puppeteer is an advanced manual conversion path documented in `SKILL.md`, not a fallback used by the bundled shell scripts.
 
 ```bash
 # Recommended: cairosvg (best CSS support)
-pip install cairosvg
+python3 -m pip install cairosvg
 
 # Fallback: rsvg-convert (system package; may drop CSS / <foreignObject>)
 brew install librsvg                   # macOS
 sudo apt install librsvg2-bin          # Ubuntu/Debian
 
-# Highest fidelity: puppeteer (real Chromium; heavy)
-npm install puppeteer
-
-# Verify (any one is enough)
+# Verify either supported script renderer
 python3 -c "import cairosvg; print(cairosvg.__version__)"
 rsvg-convert --version
 ```
 
 | Renderer | Quality | Install Cost | Use When |
 |----------|---------|--------------|----------|
-| **cairosvg** | ✅ Good | Single `pip install` | Default — best balance |
+| **cairosvg** | ✅ Good | Single `python3 -m pip install` | Default — best balance |
 | rsvg-convert | ⚠️ Fair | System package | No Python available, simple flat diagrams |
-| puppeteer | ✅✅ Best | Node + ~150MB Chromium | Browser-generated SVG (D3, Mermaid) or pixel-perfect required |
+| puppeteer | ✅✅ Best | Node + Chromium | Manual browser-rendering path for D3, Mermaid, or pixel-perfect output |
 
 ---
 
@@ -559,9 +586,10 @@ fireworks-tech-graph/
 │   ├── style-6-claude-official.md # Warm cream background, Anthropic brand
 │   ├── style-7-openai.md         # Clean white, OpenAI brand palette
 │   ├── style-8-dark-luxury.md    # Deep black, champagne gold, AI-authored layout
+│   ├── png-export.md             # Renderer selection and manual export paths
 │   └── icons.md                  # 40+ product icons + semantic shapes
 ├── agents/
-│   └── openai.yaml              # Agent metadata for compatible runtimes
+│   └── openai.yaml              # Optional Codex UI metadata
 ├── fixtures/
 │   ├── mem0-style1.json         # Style 1 regression fixture
 │   ├── tool-call-style2.json    # Style 2 regression fixture
@@ -570,6 +598,7 @@ fireworks-tech-graph/
 ├── scripts/
 │   ├── generate-diagram.sh       # Validate SVG + export PNG
 │   ├── generate-from-template.py # Create starter SVGs from templates
+│   ├── svg2png.js                 # High-fidelity Puppeteer exporter
 │   ├── validate-svg.sh           # Validation and render-check entrypoint
 │   ├── validate_svg.py           # XML, marker, transform, and path collision checks
 │   └── test-all-styles.sh        # Batch test all styles
@@ -609,12 +638,12 @@ fireworks-tech-graph/
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | PNG is blank or all-black | `@import url()` in SVG — neither cairosvg nor rsvg-convert can fetch external fonts | Remove `@import`, use system font stack |
-| PNG not generated | No renderer installed | `pip install cairosvg` (recommended), or `brew install librsvg` / `apt install librsvg2-bin` |
-| Borders or text missing in PNG | Using `rsvg-convert` on SVG with CSS / `<foreignObject>` | Switch to `cairosvg` (`pip install cairosvg`) — much better CSS support |
+| PNG not generated | No renderer installed | `python3 -m pip install cairosvg` (recommended), or `brew install librsvg` / `apt install librsvg2-bin` |
+| Borders or text missing in PNG | Using `rsvg-convert` on SVG with CSS / `<foreignObject>` | Switch to `cairosvg` (`python3 -m pip install cairosvg`) — much better CSS support |
 | Diagram cut off at bottom | ViewBox height too short | Increase `height` in `viewBox="0 0 960 <height>"` |
 | Text overflowing boxes | Labels too long | Add `text-anchor="middle"` + `<clipPath>` or shorten label |
 | Icons not rendering | External CDN URL | Use inline SVG paths from `references/icons.md` |
-| Browser-generated SVG renders incorrectly | cairosvg / rsvg can't replay all CSS/JS-injected styles | Use the puppeteer script in `SKILL.md` for 100% fidelity |
+| Browser-generated SVG renders incorrectly | cairosvg / rsvg can't replay all CSS/JS-injected styles | Use `scripts/svg2png.js` as described in `references/png-export.md` |
 
 ---
 

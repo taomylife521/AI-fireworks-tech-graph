@@ -1582,6 +1582,7 @@ def main() -> None:
         else:
             data = json.load(sys.stdin)
         svg_content = build_svg(template_type, data)
+        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as handle:
             handle.write(svg_content)
         print(f"✓ SVG generated: {output_path}")

@@ -92,7 +92,8 @@ elif [ -n "$RENDER_TOOL" ]; then
     echo "$RENDER_ERR"
     FAILURES=$((FAILURES + 1))
 else
-    echo -e "${YELLOW}⚠ Skipped${NC} (no renderer found — install cairosvg: pip install cairosvg)"
+    echo -e "${RED}✗ Fail${NC} (no renderer found — install with: python3 -m pip install cairosvg)"
+    FAILURES=$((FAILURES + 1))
 fi
 
 echo "----------------------------------------"

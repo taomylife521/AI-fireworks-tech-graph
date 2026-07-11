@@ -124,7 +124,7 @@ python3 ./generate-from-template.py memory ./output/mem0.svg '{
 
 - **cairosvg**（推荐）- SVG 转 PNG，CSS 支持最好
   ```bash
-  pip install cairosvg
+  python3 -m pip install cairosvg
   ```
 
 - **rsvg-convert**（备选）- 系统包；复杂 SVG 可能丢失 CSS / `<foreignObject>`
@@ -133,7 +133,7 @@ python3 ./generate-from-template.py memory ./output/mem0.svg '{
   sudo apt install librsvg2-bin       # Ubuntu/Debian
   ```
 
-`generate-diagram.sh` 会优先调用 cairosvg，缺失时自动回退到 rsvg-convert。完整对比见 [SKILL.md → SVG → PNG Conversion](../SKILL.md)。
+`generate-diagram.sh` 会优先调用 cairosvg，缺失时自动回退到 rsvg-convert。完整对比见 [PNG 导出参考](../references/png-export.md)。
 
 - **grep, sed, awk** - 文本处理（macOS 自带）
 
@@ -164,23 +164,27 @@ fireworks-tech-graph/
 ### 场景 1：验证现有 SVG
 
 ```bash
-cd ~/.claude/skills/fireworks-tech-graph/scripts
-./validate-svg.sh /path/to/your-diagram.svg
+SKILL_ROOT=~/.agents/skills/fireworks-tech-graph # Codex
+# SKILL_ROOT=~/.claude/skills/fireworks-tech-graph # Claude Code
+"$SKILL_ROOT/scripts/validate-svg.sh" /path/to/your-diagram.svg
 ```
 
 ### 场景 2：生成并验证图表
 
-1. 使用 Claude Code 生成 SVG 内容
+1. 使用 Codex 或 Claude Code 生成 SVG 内容
 2. 运行验证和导出：
    ```bash
-   ./generate-diagram.sh -t architecture -s 1 -o ./output/arch.svg
+   SKILL_ROOT=~/.agents/skills/fireworks-tech-graph # Codex
+   # SKILL_ROOT=~/.claude/skills/fireworks-tech-graph # Claude Code
+   "$SKILL_ROOT/scripts/generate-diagram.sh" -t architecture -s 1 -o ./output/arch.svg
    ```
 
 ### 场景 3：批量测试所有风格
 
 ```bash
-cd ~/.claude/skills/fireworks-tech-graph/scripts
-./test-all-styles.sh
+SKILL_ROOT=~/.agents/skills/fireworks-tech-graph # Codex
+# SKILL_ROOT=~/.claude/skills/fireworks-tech-graph # Claude Code
+"$SKILL_ROOT/scripts/test-all-styles.sh"
 ```
 
 测试脚本会自动：
@@ -210,7 +214,7 @@ ls -lh ../test-output/
 
 **解决方案（任选其一，推荐 cairosvg）：**
 ```bash
-pip install cairosvg                   # 推荐
+python3 -m pip install cairosvg        # 推荐
 brew install librsvg                   # macOS 系统包
 sudo apt install librsvg2-bin          # Ubuntu/Debian
 ```
@@ -221,9 +225,9 @@ sudo apt install librsvg2-bin          # Ubuntu/Debian
 
 **解决方案：** 切换到 cairosvg：
 ```bash
-pip install cairosvg
+python3 -m pip install cairosvg
 ```
-脚本会自动优先使用 cairosvg。如果仍需要像素级还原（例如浏览器生成的 SVG），改用 puppeteer（见 SKILL.md）。
+脚本会自动优先使用 cairosvg。如果仍需要像素级还原（例如浏览器生成的 SVG），按 [PNG 导出参考](../references/png-export.md) 使用 `svg2png.js`。
 
 ### 问题：权限被拒绝
 

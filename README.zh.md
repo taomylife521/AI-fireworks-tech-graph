@@ -5,14 +5,15 @@
 > 不用手画图了。用中文描述你的系统，几秒钟得到可直接发布的 SVG + PNG 技术图。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/code)
+[![Codex Skill](https://img.shields.io/badge/Codex-Skill-10a37f)](https://learn.chatgpt.com/docs/build-skills)
+[![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-d97757)](https://code.claude.com/docs/zh-CN/skills)
 [![8 种视觉风格](https://img.shields.io/badge/风格-8种-purple)]()
 [![14 种图类型](https://img.shields.io/badge/图类型-14种-green)]()
 [![UML 支持](https://img.shields.io/badge/UML-完整支持-orange)]()
 
 ## 概述
 
-`fireworks-tech-graph` 将自然语言描述转化为精美的 SVG 技术图，并通过 `cairosvg`（推荐）导出高分辨率 PNG，同时支持 `rsvg-convert` 与 `puppeteer` 作为备选方案。内置 **7 种模板风格** + **1 种 AI 手绘风格（Dark Luxury）**，深度覆盖 AI/Agent 领域常见图类型（RAG、Agentic Search、Mem0、Multi-Agent、Tool Call 流程等），并完整支持全部 14 种 UML 图类型。
+`fireworks-tech-graph` 是一份可由 **Codex 和 Claude Code 共用**的 Agent Skill。它将自然语言描述转化为精美的 SVG 技术图，并通过 `cairosvg`（推荐）导出高分辨率 PNG，同时支持 `rsvg-convert` 与 `puppeteer` 作为备选方案。内置 **7 种模板风格** + **1 种 AI 手绘风格（Dark Luxury）**，深度覆盖 AI/Agent 领域常见图类型（RAG、Agentic Search、Mem0、Multi-Agent、Tool Call 流程等），并完整支持全部 14 种 UML 图类型。
 
 ```
 用户: "画一张 Mem0 的架构图，暗黑风格"
@@ -190,67 +191,93 @@ visual_review: passed
 ## 安装
 
 > [!WARNING]
-> `npx skills add`（v1.5.15）只会复制 `SKILL.md` 单文件 — `references/`、`scripts/`、`templates/` 等子目录会被静默丢弃。**请使用 `git clone` 获得完整安装。**
+> 部分版本的 `npx skills add` 只会复制 `SKILL.md`，会漏掉 `references/`、`scripts/`、`templates/` 等目录。**请使用 `git clone` 获得完整安装。**
+
+下面的命令适用于首次安装。如果目标路径已经存在但不是 Git 仓库，先把旧目录移开，再执行对应的 clone 命令：
 
 ```bash
+mv ~/.agents/skills/fireworks-tech-graph ~/.agents/skills/fireworks-tech-graph.backup-$(date +%Y%m%d-%H%M%S)
+# 或
+mv ~/.claude/skills/fireworks-tech-graph ~/.claude/skills/fireworks-tech-graph.backup-$(date +%Y%m%d-%H%M%S)
+```
+
+### Codex
+
+```bash
+mkdir -p ~/.agents/skills
+git clone https://github.com/yizhiyanhua-ai/fireworks-tech-graph.git ~/.agents/skills/fireworks-tech-graph
+```
+
+Codex 从 `~/.agents/skills` 发现个人 Skill，并会读取仓库中的可选元数据 `agents/openai.yaml`。
+
+### Claude Code
+
+```bash
+mkdir -p ~/.claude/skills
 git clone https://github.com/yizhiyanhua-ai/fireworks-tech-graph.git ~/.claude/skills/fireworks-tech-graph
 ```
 
-或使用 `npx skills add`（子目录可能缺失）：
+Claude Code 从 `~/.claude/skills` 发现个人 Skill，会忽略只供 Codex 使用的 UI 元数据。
+
+### 同一台机器同时使用 Codex 和 Claude Code
+
+首次安装且 Claude Code 版本不低于 2.1.203 时，可以只保留一份仓库，再把两个发现路径链接到它。创建链接前，先把已有目标目录移开。
 
 ```bash
-npx skills add yizhiyanhua-ai/fireworks-tech-graph
+mkdir -p ~/.local/share/agent-skills ~/.agents/skills ~/.claude/skills
+git clone https://github.com/yizhiyanhua-ai/fireworks-tech-graph.git ~/.local/share/agent-skills/fireworks-tech-graph
+ln -s ~/.local/share/agent-skills/fireworks-tech-graph ~/.agents/skills/fireworks-tech-graph
+ln -s ~/.local/share/agent-skills/fireworks-tech-graph ~/.claude/skills/fireworks-tech-graph
 ```
 
-这个 Skill 的 `skills add` 安装源是 GitHub 仓库。npm 页面用于公开展示、版本分发和 README 浏览：
+这样 `SKILL.md`、参考资料、脚本、模板和后续更新在两端始终一致。npm 页面继续用于包元数据和版本分发：
 
 ```text
 https://www.npmjs.com/package/@yizhiyanhua-ai/fireworks-tech-graph
 ```
 
-不要把 npm 包名直接写进 `skills add`，因为 CLI 会把安装源解析为 GitHub 路径或本地路径。
-
 ## 更新
 
-```bash
-cd ~/.claude/skills/fireworks-tech-graph && git pull
-```
-
-或重新执行 CLI 安装器：
+更新实际安装的那一份仓库：
 
 ```bash
-npx skills add yizhiyanhua-ai/fireworks-tech-graph --force -g -y
+git -C ~/.agents/skills/fireworks-tech-graph pull
+# 或
+git -C ~/.claude/skills/fireworks-tech-graph pull
+# 或：共享仓库方式
+git -C ~/.local/share/agent-skills/fireworks-tech-graph pull
 ```
+
+首次安装后重启 Codex 和 Claude Code，让两端重新发现 Skill。后续修改 `SKILL.md` 会自动生效；如果改的是脚本或参考资料而运行时没有看到更新，重启对应运行时。
+
+以上 Shell 命令适用于 macOS、Linux、WSL 和 Git Bash。原生 Windows 请使用 `%USERPROFILE%\.agents\skills` 与 `%USERPROFILE%\.claude\skills` 对应路径。
 
 ---
 
 ## 安装依赖
 
-任选 **一种** PNG 渲染器（推荐 cairosvg）：
+仓库自带的校验/导出脚本需要 **cairosvg**（推荐）或 `rsvg-convert`。Puppeteer 是 `SKILL.md` 中的高级手动转换方案，不是脚本会自动使用的回退项。
 
 ```bash
 # 推荐：cairosvg（CSS 支持最好）
-pip install cairosvg
+python3 -m pip install cairosvg
 
 # 备选：rsvg-convert（系统包，可能丢失 CSS / <foreignObject>）
 brew install librsvg                   # macOS
 sudo apt install librsvg2-bin          # Ubuntu/Debian
 
-# 最高保真：puppeteer（真实 Chromium，体积较大）
-npm install puppeteer
-
-# 验证安装（任一即可）
+# 验证脚本支持的任一渲染器
 python3 -c "import cairosvg; print(cairosvg.__version__)"
 rsvg-convert --version
 ```
 
 | 渲染器 | 渲染质量 | 安装成本 | 适用场景 |
 |--------|---------|---------|---------|
-| **cairosvg** | ✅ 好 | 一行 `pip install` | 默认推荐，平衡最佳 |
+| **cairosvg** | ✅ 好 | 一行 `python3 -m pip install` | 默认推荐，平衡最佳 |
 | rsvg-convert | ⚠️ 一般 | 系统包 | 没有 Python 环境，简单图形够用 |
-| puppeteer | ✅✅ 最佳 | Node + 约 150MB Chromium | 浏览器生成的 SVG（D3、Mermaid）或像素级还原 |
+| puppeteer | ✅✅ 最佳 | Node + Chromium | D3、Mermaid 或像素级还原的手动浏览器渲染方案 |
 
-> 详细的对比、批量脚本与 puppeteer 完整脚本见 [SKILL.md → SVG → PNG Conversion](SKILL.md)。
+> 渲染器对比和 Puppeteer 用法见 [references/png-export.md](references/png-export.md)，浏览器导出脚本位于 `scripts/svg2png.js`。
 
 ---
 
@@ -532,9 +559,10 @@ fireworks-tech-graph/
 │   ├── style-6-claude-official.md # Claude 官方风格 — 温暖奶油色，Anthropic 品牌
 │   ├── style-7-openai.md         # OpenAI 官方风格 — 简洁白色，OpenAI 品牌配色
 │   ├── style-8-dark-luxury.md    # 深黑画布、香槟金、AI 手绘布局
+│   ├── png-export.md             # 渲染器选择与手动导出方案
 │   └── icons.md                  # 40+ 产品图标 + 语义形状模板
 ├── agents/
-│   └── openai.yaml              # 兼容运行时使用的 Agent 元数据
+│   └── openai.yaml              # Codex 可选 UI 元数据
 ├── fixtures/
 │   ├── mem0-style1.json         # Style 1 回归样例
 │   ├── tool-call-style2.json    # Style 2 回归样例
@@ -543,6 +571,7 @@ fireworks-tech-graph/
 ├── scripts/
 │   ├── generate-diagram.sh       # SVG 校验与 PNG 导出
 │   ├── generate-from-template.py # 基于模板生成 SVG 起始文件
+│   ├── svg2png.js                 # Puppeteer 高保真导出脚本
 │   ├── validate-svg.sh           # 校验与渲染检查入口
 │   ├── validate_svg.py           # XML、marker、transform 与路径碰撞检测
 │   └── test-all-styles.sh        # 批量测试所有风格

@@ -115,10 +115,11 @@ PY
             if [ "$PNG_OK" = true ]; then
                 PNG_SIZE=$(du -h "$PNG_FILE" | cut -f1)
                 echo -e "${GREEN}✓ Pass${NC} (${PNG_SIZE})"
+                PASSED=$((PASSED + 1))
             else
-                echo -e "${GREEN}✓ Pass${NC}"
+                echo -e "${RED}✗ Fail${NC} (PNG export failed)"
+                FAILED=$((FAILED + 1))
             fi
-            PASSED=$((PASSED + 1))
         else
             echo -e "${RED}✗ Fail${NC}"
             FAILED=$((FAILED + 1))
@@ -151,10 +152,11 @@ PY
             if [ "$PNG_OK" = true ]; then
                 PNG_SIZE=$(du -h "$PNG_FILE" | cut -f1)
                 echo -e "${GREEN}✓ Pass${NC} (${PNG_SIZE})"
+                PASSED=$((PASSED + 1))
             else
-                echo -e "${GREEN}✓ Pass${NC}"
+                echo -e "${RED}✗ Fail${NC} (PNG export failed)"
+                FAILED=$((FAILED + 1))
             fi
-            PASSED=$((PASSED + 1))
         else
             echo -e "${RED}✗ Fail${NC}"
             FAILED=$((FAILED + 1))

@@ -1,10 +1,12 @@
 {
   "name": "@yizhiyanhua-ai/fireworks-tech-graph",
-  "version": "1.0.4",
-  "description": "Generate production-quality SVG technical diagrams (architecture, flowchart, UML, ER, sequence, etc.) with 8 built-in styles. Export as SVG+PNG via cairosvg (recommended), with rsvg-convert and puppeteer as alternatives.",
-  "main": "SKILL.md",
+  "version": "1.0.5",
+  "description": "Agent Skill for Codex and Claude Code that generates production-quality SVG technical diagrams with 8 built-in styles and exports SVG+PNG.",
   "keywords": [
     "claude-code",
+    "codex",
+    "openai-codex",
+    "agent-skills",
     "skill",
     "diagram",
     "svg",
@@ -30,6 +32,7 @@
     "README.md",
     "README.zh.md",
     "LICENSE",
+    "agents/",
     "references/",
     "scripts/",
     "tests/",
