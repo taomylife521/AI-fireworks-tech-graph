@@ -2835,7 +2835,12 @@ async function renderFrames(arguments_) {
     });
 
     for (let index = 0; index < frameCount; index += 1) {
-      await page.evaluate((frameIndex) => window.__fireworksSetMotionFrame(frameIndex), index);
+      await page.evaluate(async (frameIndex) => {
+        window.__fireworksSetMotionFrame(frameIndex);
+        await new Promise((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(resolve));
+        });
+      }, index);
       const framePath = path.join(framesDirectory, `frame-${String(index).padStart(6, "0")}.png`);
       await page.screenshot({
         path: framePath,
