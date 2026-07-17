@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
-import sys
+import struct
 from pathlib import Path
 
 
@@ -26,6 +27,121 @@ STYLE_CATALOG = {
     12: ("style-12-ops-pulse.md", "ops-pulse-style12.json", "sample-style12-ops-pulse.png"),
 }
 GENERATOR_STYLES = (1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12)
+ANIMATED_SHOWCASE = (
+    "showcase-12-styles.gif",
+    "sample-style1-flat.gif",
+    "sample-style2-dark.gif",
+    "sample-style3-blueprint.gif",
+    "sample-style4-notion.gif",
+    "sample-style5-glass.gif",
+    "sample-style6-claude.gif",
+    "sample-style7-openai.gif",
+    "sample-style8-dark-luxury.gif",
+    "sample-style9-c4-review-canvas.gif",
+    "sample-style10-cloud-fabric.gif",
+    "sample-style11-event-transit.gif",
+    "sample-style12-ops-pulse.gif",
+)
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _read_gif_sub_blocks(data: bytes, offset: int) -> tuple[bytes, int]:
+    chunks: list[bytes] = []
+    while True:
+        if offset >= len(data):
+            raise ValueError("truncated GIF sub-block stream")
+        size = data[offset]
+        offset += 1
+        if size == 0:
+            return b"".join(chunks), offset
+        if offset + size > len(data):
+            raise ValueError("truncated GIF sub-block payload")
+        chunks.append(data[offset : offset + size])
+        offset += size
+
+
+def _inspect_gif(path: Path) -> dict[str, object]:
+    data = path.read_bytes()
+    if len(data) < 13 or data[:6] not in (b"GIF87a", b"GIF89a"):
+        raise ValueError("invalid GIF header")
+    width, height = struct.unpack_from("<HH", data, 6)
+    packed = data[10]
+    offset = 13
+    if packed & 0x80:
+        offset += 3 * (2 ** ((packed & 0x07) + 1))
+
+    delays: list[int] = []
+    pending_delay: int | None = None
+    loop_count: int | None = None
+    frames = 0
+    while offset < len(data):
+        marker = data[offset]
+        offset += 1
+        if marker == 0x3B:
+            break
+        if marker == 0x21:
+            if offset >= len(data):
+                raise ValueError("truncated GIF extension")
+            label = data[offset]
+            offset += 1
+            if label == 0xF9:
+                if offset + 6 > len(data) or data[offset] != 4:
+                    raise ValueError("invalid GIF graphic control extension")
+                pending_delay = struct.unpack_from("<H", data, offset + 2)[0]
+                terminator = offset + 5
+                if data[terminator] != 0:
+                    raise ValueError("unterminated GIF graphic control extension")
+                offset = terminator + 1
+            elif label == 0xFF:
+                if offset >= len(data):
+                    raise ValueError("truncated GIF application extension")
+                block_size = data[offset]
+                offset += 1
+                if offset + block_size > len(data):
+                    raise ValueError("truncated GIF application identifier")
+                application = data[offset : offset + block_size]
+                offset += block_size
+                payload, offset = _read_gif_sub_blocks(data, offset)
+                if application in (b"NETSCAPE2.0", b"ANIMEXTS1.0") and len(payload) >= 3 and payload[0] == 1:
+                    loop_count = struct.unpack_from("<H", payload, 1)[0]
+            else:
+                _, offset = _read_gif_sub_blocks(data, offset)
+            continue
+        if marker != 0x2C:
+            raise ValueError(f"unexpected GIF block marker: 0x{marker:02x}")
+        if offset + 9 > len(data):
+            raise ValueError("truncated GIF image descriptor")
+        local_packed = data[offset + 8]
+        offset += 9
+        if local_packed & 0x80:
+            offset += 3 * (2 ** ((local_packed & 0x07) + 1))
+        if offset >= len(data):
+            raise ValueError("truncated GIF image data")
+        offset += 1  # LZW minimum code size
+        _, offset = _read_gif_sub_blocks(data, offset)
+        frames += 1
+        delays.append(0 if pending_delay is None else pending_delay)
+        pending_delay = None
+
+    delay_histogram: dict[str, int] = {}
+    for delay in delays:
+        key = str(delay)
+        delay_histogram[key] = delay_histogram.get(key, 0) + 1
+    return {
+        "width": width,
+        "height": height,
+        "frames": frames,
+        "duration_seconds": sum(delays) / 100,
+        "delay_histogram": delay_histogram,
+        "loop_count": loop_count,
+    }
 
 
 def main() -> int:
@@ -35,6 +151,13 @@ def main() -> int:
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     if f"## {version} " not in changelog:
         problems.append(f"CHANGELOG.md has no {version} release heading")
+    release_notes = ROOT / "docs" / "releases" / f"v{version}.md"
+    if not release_notes.is_file():
+        problems.append(f"missing release notes: {release_notes.relative_to(ROOT)}")
+    elif not release_notes.read_text(encoding="utf-8").startswith(
+        f"# Fireworks Tech Graph v{version}\n"
+    ):
+        problems.append(f"release notes title does not match package version: {release_notes.relative_to(ROOT)}")
     if any(str(entry).startswith("skills") for entry in package.get("files", [])):
         problems.append("package.json files must not include skills/")
 
@@ -47,12 +170,101 @@ def main() -> int:
         if relative != "index.html" and "12" not in text:
             problems.append(f"{relative} is missing the twelve-style claim")
 
-    showcase = Path("assets") / "samples" / "showcase-12-styles.png"
+    showcase = Path("assets") / "samples" / "showcase-12-styles.gif"
     if not (ROOT / showcase).is_file():
         problems.append(f"missing latest showcase overview: {showcase}")
     for relative in ("README.md", "README.zh.md"):
-        if showcase.as_posix() not in (ROOT / relative).read_text(encoding="utf-8"):
+        readme = (ROOT / relative).read_text(encoding="utf-8")
+        if showcase.as_posix() not in readme:
             problems.append(f"{relative} is missing the latest showcase overview")
+        static_images = re.findall(r"!\[[^]]*\]\((assets/samples/[^)]+\.png)\)", readme)
+        if static_images:
+            problems.append(f"{relative} still embeds static showcase images: {', '.join(static_images)}")
+
+    samples = ROOT / "assets" / "samples"
+    manifest_path = samples / "showcase-gif-manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        problems.append(f"cannot read animated showcase manifest: {error}")
+        manifest = {}
+    if not isinstance(manifest, dict):
+        problems.append("animated showcase manifest must be a JSON object")
+        manifest = {}
+    entries = manifest.get("assets", [])
+    by_name = {
+        str(entry.get("file")): entry
+        for entry in entries
+        if isinstance(entry, dict) and isinstance(entry.get("file"), str)
+    }
+    if manifest.get("schema_version") != 1:
+        problems.append("animated showcase manifest must use schema_version 1")
+    if manifest.get("source_contract") != "user-approved +2s-settled-flow":
+        problems.append("animated showcase manifest is missing the approved motion contract")
+    approval = manifest.get("approval")
+    if not isinstance(approval, dict) or approval != {
+        "status": "user-approved",
+        "style_count": 12,
+        "full_size_frame_count": 1380,
+        "compatibility_frames_accepted": 852,
+        "compatibility_frames_total": 852,
+    }:
+        problems.append("animated showcase manifest has incomplete public approval evidence")
+    if set(by_name) != set(ANIMATED_SHOWCASE):
+        problems.append("animated showcase manifest must describe exactly the overview plus 12 styles")
+    for name in ANIMATED_SHOWCASE:
+        path = samples / name
+        if not path.is_file():
+            problems.append(f"missing animated showcase asset: {path.relative_to(ROOT)}")
+            continue
+        entry = by_name.get(name)
+        if not entry:
+            continue
+        if path.read_bytes()[:6] not in (b"GIF87a", b"GIF89a"):
+            problems.append(f"animated showcase asset is not a GIF: {path.relative_to(ROOT)}")
+        if entry.get("bytes") != path.stat().st_size:
+            problems.append(f"animated showcase byte size drifted: {path.relative_to(ROOT)}")
+        if entry.get("sha256") != _sha256(path):
+            problems.append(f"animated showcase hash drifted: {path.relative_to(ROOT)}")
+        try:
+            media = _inspect_gif(path)
+        except ValueError as error:
+            problems.append(f"cannot inspect animated showcase asset {path.relative_to(ROOT)}: {error}")
+            continue
+        for field in ("width", "height", "frames", "duration_seconds"):
+            if media[field] != entry.get(field):
+                problems.append(f"animated showcase {field} drifted: {path.relative_to(ROOT)}")
+        if media["loop_count"] != 0:
+            problems.append(f"animated showcase must loop infinitely: {path.relative_to(ROOT)}")
+        if name == "showcase-12-styles.gif":
+            if (
+                entry.get("width") != 1200
+                or entry.get("height") != 1280
+                or entry.get("fps") != "12/1"
+                or entry.get("duration_seconds") != 5.75
+                or entry.get("frames") != 69
+            ):
+                problems.append("animated overview metadata must remain 1200x1280, 12fps, 69 frames, and 5.75 seconds")
+            if media["delay_histogram"] != {"8": 46, "9": 23}:
+                problems.append("animated overview must retain its 46x8cs + 23x9cs cadence")
+            if path.stat().st_size > 2 * 1024 * 1024:
+                problems.append("animated overview exceeds the 2 MiB README budget")
+        elif (
+            entry.get("width") != 960
+            or entry.get("fps") != "20/1"
+            or entry.get("duration_seconds") != 5.75
+            or entry.get("frames") != 115
+        ):
+            problems.append(f"animated style metadata drifted from the approved timeline: {name}")
+        elif media["delay_histogram"] != {"5": 115}:
+            problems.append(f"animated style cadence drifted from 20fps: {name}")
+
+    for relative in ("README.md", "README.zh.md"):
+        readme = (ROOT / relative).read_text(encoding="utf-8")
+        for name in ANIMATED_SHOWCASE:
+            target = (Path("assets") / "samples" / name).as_posix()
+            if target not in readme:
+                problems.append(f"{relative} is missing animated showcase asset: {target}")
 
     index = (ROOT / "index.html").read_text(encoding="utf-8")
     for stale in (
@@ -68,6 +280,14 @@ def main() -> int:
             problems.append(f"index.html contains stale claim: {stale.strip()}")
     if "Agent Runtime Architecture" not in index:
         problems.append("index.html Style 8 title does not match the fixture")
+    if showcase.as_posix() not in index:
+        problems.append("index.html is missing the animated twelve-style overview")
+    for name in ANIMATED_SHOWCASE:
+        if name == showcase.name:
+            continue
+        target = (Path("assets") / "samples" / name).as_posix()
+        if target not in index:
+            problems.append(f"index.html is missing animated showcase asset: {target}")
 
     for style_id, (reference, fixture, sample) in STYLE_CATALOG.items():
         for relative in (

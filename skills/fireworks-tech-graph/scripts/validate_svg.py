@@ -21,8 +21,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-import fireworks_geometry as geometry
-import composition_quality as quality
+import fireworks_geometry as geometry  # noqa: E402
+import composition_quality as quality  # noqa: E402
 
 
 NUMBER_RE = re.compile(r"[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?")
@@ -583,14 +583,25 @@ def role_bounds(context: ElementContext) -> Optional[Bounds]:
         width = parse_number(element.get("width"), None)
         height = parse_number(element.get("height"), None)
         if width is not None and height is not None and width >= 0 and height >= 0:
-            return transformed_bounds(context.matrix, ((x, y), (x + width, y + height)))
+            return transformed_bounds(
+                context.matrix,
+                ((x, y), (x + width, y), (x + width, y + height), (x, y + height)),
+            )
     if tag == "text" and context.role == "label":
         x = float(parse_number(element.get("x"), 0.0) or 0.0)
         y = float(parse_number(element.get("y"), 0.0) or 0.0)
         font_size = float(parse_number(element.get("font-size"), 12.0) or 12.0)
         anchor = element.get("text-anchor", "start")
         local = geometry.estimate_text_bounds(x, y, "".join(element.itertext()), font_size=font_size, anchor=anchor)
-        return transformed_bounds(context.matrix, ((local[0], local[1]), (local[2], local[3])))
+        return transformed_bounds(
+            context.matrix,
+            (
+                (local[0], local[1]),
+                (local[2], local[1]),
+                (local[2], local[3]),
+                (local[0], local[3]),
+            ),
+        )
     return None
 
 
@@ -834,13 +845,17 @@ def composition_check(root: ET.Element) -> list[str]:
     for context, routes in edges:
         edge = context.element
         edge_id = edge.get("data-edge-id") or edge.get("id") or describe_element(edge)
-        for index, route in enumerate(route for route in routes if len(route) >= 2):
+        valid_routes = [route for route in routes if len(route) >= 2]
+        declared_bridges = geometry.parse_bridge_points(edge.get("data-bridges"))
+        for index, route in enumerate(valid_routes):
             edge_records.append(
                 {
-                    "id": edge_id if len(routes) == 1 else f"{edge_id}:{index + 1}",
+                    "id": edge_id if len(valid_routes) == 1 else f"{edge_id}:{index + 1}",
                     "route": route,
                     "bends": geometry.bend_count(route),
-                    "bridges": geometry.parse_bridge_points(edge.get("data-bridges")),
+                    # Bridges are declared once per SVG edge element even when
+                    # its path contains multiple independently drawn subpaths.
+                    "bridges": declared_bridges if index == 0 else [],
                 }
             )
     assessment = quality.assess_composition(
